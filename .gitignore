@@ -102,8 +102,5 @@ dist
 
 # TernJS port file
 .tern-port
-<<<<<<< HEAD
-=======
 
 sdk
->>>>>>> meepo/master
