@@ -4,6 +4,11 @@
   "publishConfig": {
     "access": "public"
   },
+  "keywords": [
+    "sdk",
+    "gen",
+    "sdk-gen"
+  ],
   "bin": {
     "sdk-gen": "src/bin.js"
   },
@@ -27,5 +32,12 @@
     "commander": "^6.1.0",
     "fs-extra": "^9.0.1",
     "ts-morph": "^8.1.0"
+  },
+  "author": {
+    "email": "1938531151@qq.com",
+    "name": "testsla"
+  },
+  "repository": {
+    "url": "https://github.com/TEsTsLA/sdk-gen"
   }
 }
