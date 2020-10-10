@@ -1,0 +1,4 @@
+{
+  "outDir": "sdk",
+  "httpMod": "../util/http"
+}
