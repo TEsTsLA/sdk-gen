@@ -1,5 +1,5 @@
 import { Body, Controller, Get, Post, Query } from "@nestjs/common";
-import { CreateUserDto } from "./create-user.dto";
+import { CreateUserDto } from "./user.dto";
 
 
 @Controller()
@@ -14,7 +14,7 @@ export class DemoController {
    * @param demo 输入
    */
   @Post()
-  async postDemo(@Body("demo") demo: string): Promise<string> {
+  async postDemo(@Body() demo: CreateUserDto): Promise<string> {
     return `hello world`;
   }
   /**

@@ -117,7 +117,7 @@ ControllerClassList.map(cls => {
   })
   ApiStruct.methods = ApiStruct.methods?.concat(structure.methods ?? [])
 })
-DtoClassList.map(cls=>{
+DtoClassList.map(cls => {
   const structure = cls.getStructure()
   structure.decorators = []
   outputDtoFile.addClass(structure)

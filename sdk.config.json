@@ -1,4 +1,5 @@
 {
   "outDir": "sdk",
-  "httpMod": "../util/http"
+  "httpMod": "../util/http",
+  "type": "nestjs"
 }
