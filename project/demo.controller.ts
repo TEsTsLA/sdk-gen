@@ -1,8 +1,6 @@
 import { Body, Controller, Get, Post, Query } from "@nestjs/common";
-export class CreateUserDto {
-  name!: string;
-  age!: number;
-}
+import { CreateUserDto } from "./create-user.dto";
+
 
 @Controller()
 export class DemoController {

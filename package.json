@@ -13,7 +13,8 @@
     "sdk-gen": "src/bin.js"
   },
   "scripts": {
-    "start": "ts-node -r tsconfig-paths/register tests/main.ts"
+    "server": "ts-node -r tsconfig-paths/register tests/main.ts",
+    "start": "ts-node -r tsconfig-paths/register src/bin.ts"
   },
   "devDependencies": {
     "@nestjs/common": "^7.4.4",
