@@ -1,6 +1,7 @@
 #!/bin/bash node
 import program from "commander";
-import { ClassDeclaration, Project, ClassDeclarationStructure, StructureKind } from "ts-morph";
+import { ClassDeclaration, Project, ClassDeclarationStructure, StructureKind, Node, VariableDeclarationKind } from "ts-morph";
+import ts from 'typescript'
 import { join } from "path";
 import { ensureDirSync, rmdirSync } from "fs-extra";
 // 根目录
@@ -17,111 +18,88 @@ rmdirSync(output, {
   recursive: true,
 });
 ensureDirSync(output);
+// 项目 Project
 const project = new Project({
   tsConfigFilePath: join(root, "tsconfig.json"),
 });
 const sourcefiles = project.getSourceFiles();
+// 输入sdk Project
 const distProject = new Project();
+
+const outIndexFile = distProject.createSourceFile(join(output, "index.ts"))
+
+const outControlFile = distProject.createSourceFile(join(output, "control.ts"))
+outControlFile.addStatements(`import http from '${SdkConf.httpMod}';`);
+
+const outDtoFile = distProject.createSourceFile(join(output, 'dto.ts'))
+
 const ControllerClassList: Array<ClassDeclaration> = []
 const DtoClassList: Array<ClassDeclaration> = []
+
+const MethodMap = ["GET", "POST", "PUT", "DELETE"]
+function formatMethod(Arguments: Node<ts.Node>[]): Array<string> {
+  if (!Arguments.length) {
+    return []
+  }
+  let basePath = Arguments[0]?.getText()
+  basePath = basePath.replace(/[\ |\~|\`|\!|\@|\#|\$|\%|\^|\&|\*|\(|\)|\-|\_|\+|\=|\||\\|\[|\]|\{|\}|\;|\"|\'|\,|\<|\.|\>|\?]/g, "");
+  return basePath.split('/').filter(i => !!i && i.trim()) ?? []
+}
+function getMethodStatments(paths: Array<string>, methodName: string) {
+  return `return http.${methodName.toLowerCase()}('/${paths.join('/')}')`
+}
+
 sourcefiles.forEach(sourcefile => {
-  const classes = sourcefile.getClasses();
-  classes.forEach(cls => {
-    const decorators = cls.getDecorators();
-    const hasControllerDecorator = decorators.some((dec) => {
-      const decoratorName = dec.getFullName();
-      return decoratorName === "Controller";
-    });
-    const hasDtoDecorator = decorators.some((dec) => {
-      const decoratorName = dec.getFullName();
-      return decoratorName === "Dto";
-    });
-    if (hasControllerDecorator) {
-      ControllerClassList.push(cls)
-    }
-    if (hasDtoDecorator) {
-      DtoClassList.push(cls)
-    }
+  sourcefile.fixUnusedIdentifiers()
+  sourcefile.getClasses().forEach(clazzDec => {
+    clazzDec.getDecorators().forEach(decorator => {
+      if (decorator.getFullName() === "Controller") {
+        const newClazzDec = outControlFile.addClass({
+          name: clazzDec.getName(),
+          docs: clazzDec.getJsDocs().map(item => item.getStructure())
+        })
+        newClazzDec.setIsExported(true)
+        const controlPath = formatMethod(decorator.getArguments())
+        clazzDec.getInstanceMethods().forEach(methodDec => {
+          methodDec.getDecorators().forEach(dec => {
+            const methodName = MethodMap.find(name => name === dec.getFullName().toUpperCase())
+            if (methodName) {
+              const methodPath = formatMethod(dec.getArguments())
+              const parameters = methodDec.getParameters().map(item => {
+                item.getDecorators().forEach(item => item.remove())
+                return item
+              })
+              const returnType = methodDec.getReturnType()
+              newClazzDec.addMethod({
+                name: methodDec.getName(),
+                docs: methodDec.getJsDocs().map(item => item.getStructure()),
+                statements: getMethodStatments(controlPath.concat(methodPath), methodName),
+                parameters: parameters.map(item => item.getStructure()),
+                returnType:returnType.getText()
+              })
+            }
+          })
+        })
+
+        ControllerClassList.push(newClazzDec)
+      }
+    })
+  })
+})
+// make export index
+ControllerClassList.forEach(clazzDec => {
+  outIndexFile.addVariableStatement({
+    declarationKind: VariableDeclarationKind.Const,
+    declarations: [{
+      name: `$${clazzDec.getName()}`,
+      initializer: `new ${clazzDec.getName()}()`,
+    }],
+    isExported: true
   })
 })
 
-const outputControlFile = distProject.createSourceFile(join(output, "index.ts"))
-const outputDtoFile = distProject.createSourceFile(join(output, 'dto.ts'))
-outputControlFile.addStatements(`import http from '${SdkConf.httpMod}';`);
-const ApiStruct: ClassDeclarationStructure = {
-  kind: StructureKind.Class,
-  name: "ApiControl",
-  methods: [],
-}
-ControllerClassList.map(cls => {
-  const structure = cls.getStructure()
-  structure.methods = structure.methods?.map(method => {
-    const decorators = method.decorators || [];
-    const is = (name: string) => {
-      return decorators.some((dec) => dec.name === name);
-    };
-    const getOptions = (name: string) => {
-      const decorator = decorators.find((dec) => dec.name === name);
-      let args: any[] = ["'/'"];
-      if (
-        decorator &&
-        Array.isArray(decorator.arguments) &&
-        decorator.arguments.length > 0
-      ) {
-        args = decorator.arguments
-          .map((arg) => {
-            if (typeof arg === "string") {
-              return arg;
-            }
-            return undefined;
-          })
-          .filter((it) => !!it);
-      }
-      const options = args.join(",");
-      return {
-        options
-      };
-    };
-    const create = () => {
-      if (is("Get")) {
-        const options = getOptions("Get");
-        return `return http.get(${options.options})`;
-      } else if (is("Post")) {
-        const options = getOptions("Post");
-        return `return http.post(${options.options})`;
-      } else if (is("Put")) {
-        const options = getOptions("Put");
-        return `return http.put(${options.options})`;
-      } else if (is("Delete")) {
-        const options = getOptions("Delete");
-        return `return http.delete(${options.options})`;
-      } else if (is("Head")) {
-        const options = getOptions("Head");
-        return `return http.head(${options.options})`;
-      } else if (is("Patch")) {
-        const options = getOptions("Patch");
-        return `return http.patch(${options.options})`;
-      } else if (is("Options")) {
-        const options = getOptions("Options");
-        return `return http.options(${options.options})`;
-      }
-      return `throw new Error('500')`;
-    };
-    method.decorators = []
-    method.statements = [create()]
-    method.parameters = (method.parameters || []).map((par) => {
-      par.decorators = [];
-      return par;
-    });
-    return method
-  })
-  ApiStruct.methods = ApiStruct.methods?.concat(structure.methods ?? [])
-})
-DtoClassList.map(cls => {
-  const structure = cls.getStructure()
-  structure.decorators = []
-  outputDtoFile.addClass(structure)
-})
-outputControlFile.addClass(ApiStruct)
-outputControlFile.fixMissingImports()
+// last action
+outDtoFile.fixMissingImports()
+outControlFile.fixMissingImports()
+outIndexFile.fixMissingImports()
 distProject.saveSync()

@@ -2,8 +2,10 @@ import { Body, Controller, Delete, Get, Param, Post, Put, Query } from "@nestjs/
 import { Resp } from "./all.dto";
 import { CreateUserDto, UpdUserDto } from "./user.dto";
 
-
-@Controller('/user')
+/**
+ * 用户接口
+ */
+@Controller('user')
 export class UserController {
   @Get()
   async getUser(): Promise<string> {
@@ -20,7 +22,7 @@ export class UserController {
       code: 200
     };
   }
-  @Put()
+  @Put('create')
   async updUser(@Body() data: UpdUserDto): Resp<null> {
     return { code: 200 }
   }
