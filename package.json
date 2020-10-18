@@ -14,7 +14,7 @@
   },
   "scripts": {
     "server": "ts-node -r tsconfig-paths/register project/main.ts",
-    "start": "ts-node -r tsconfig-paths/register src/bin.ts",
+    "start": "ts-node src/bin.ts",
     "docs": "docsify serve docs"
   },
   "devDependencies": {
