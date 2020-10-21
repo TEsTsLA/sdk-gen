@@ -70,6 +70,8 @@ sourcefiles.forEach(sourcefile => {
                 return item
               })
               const returnType = methodDec.getReturnType()
+              const path = returnType.getAliasSymbol().getDeclarations()[0].getSourceFile().getFilePath()
+              returnType.getText()
               newClazzDec.addMethod({
                 name: methodDec.getName(),
                 docs: methodDec.getJsDocs().map(item => item.getStructure()),
