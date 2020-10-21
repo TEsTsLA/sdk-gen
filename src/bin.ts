@@ -77,7 +77,7 @@ sourcefiles.forEach(sourcefile => {
                 docs: methodDec.getJsDocs().map(item => item.getStructure()),
                 statements: getMethodStatments(controlPath.concat(methodPath), methodName),
                 parameters: parameters.map(item => item.getStructure()),
-                returnType:returnType.getText()
+                returnType: returnType.getText()
               })
             }
           })

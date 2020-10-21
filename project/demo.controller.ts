@@ -1,15 +1,18 @@
 import {Body, Controller, Get, Post, Query} from "@nestjs/common";
-import {CreateUserDto} from "./user.dto";
 import {Resp} from "./all.dto";
+import {CreateUserDto} from "./user.dto";
 
 
 @Controller()
 export class DemoController {
     @Get()
     async getDemo(): Resp<string> {
-        return {
-            msg: `hello world`,
+        const result = {
+            msg: "getReturnTypeNode",
             code: 200
+        }
+        return {
+            ...result
         };
     }
 
