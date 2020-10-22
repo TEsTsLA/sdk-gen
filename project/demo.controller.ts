@@ -1,35 +1,46 @@
 import {Body, Controller, Get, Post, Query} from "@nestjs/common";
-import {Resp} from "./all.dto";
-import {CreateUserDto} from "./user.dto";
+import {Page, PagResp, Resp} from "./all.dto";
+import {CreateUserDto, User} from "./user.dto";
 
 
 @Controller()
 export class DemoController {
-    @Get()
-    async getDemo(): Resp<string> {
-        const result = {
-            msg: "getReturnTypeNode",
-            code: 200
-        }
-        return {
-            ...result
-        };
-    }
+    // @Get()
+    // async getUser(): Resp<CreateUserDto> {
+    //     const result = {
+    //         msg: "getReturnTypeNode",
+    //         code: 200,
+    //         data: {
+    //             name: "name",
+    //             age: 10
+    //         }
+    //     }
+    //     return {
+    //         ...result
+    //     };
+    // }
 
     /**
      *
      * @param demo 输入
      */
     @Post()
-    async postDemo(@Body() demo: CreateUserDto): Promise<string> {
-        return `hello world`;
+    async createUser(@Body() demo: CreateUserDto, @Query() q: CreateUserDto): Resp<Array<CreateUserDto>> {
+        return {
+            code: 200,
+            data: [demo]
+        };
     }
 
     /**
      * @param payload sss
      */
-    @Post('/createUser')
-    async createUser(@Body() payload: CreateUserDto, @Query() query: CreateUserDto): Promise<CreateUserDto> {
-        return payload
+    @Post('/userList')
+    async getUsers(@Body() payload: User, @Query() query: Page): PagResp<User> {
+        return {
+            code: 200,
+            total: 1000,
+            data: [payload]
+        }
     }
 }
