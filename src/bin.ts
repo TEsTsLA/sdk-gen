@@ -70,7 +70,8 @@ sourcefiles.forEach(sourcefile => {
                 return item
               })
               const returnType = methodDec.getReturnType()
-              const path = returnType.getAliasSymbol().getDeclarations()[0].getSourceFile().getFilePath()
+              // const path = returnType.getAliasSymbolOrThrow().getDeclarations()[0].getSourceFile().getFilePath()
+              returnType.getAliasSymbolOrThrow().getDeclarations()[0].getSourceFile().getExportedDeclarations().get("Resp")[0] // 获取Resp Dec
               returnType.getText()
               newClazzDec.addMethod({
                 name: methodDec.getName(),
