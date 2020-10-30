@@ -1,9 +1,14 @@
 #!/bin/bash node
 import program from "commander";
-import { ClassDeclaration, Project, ClassDeclarationStructure, StructureKind, Node, VariableDeclarationKind } from "ts-morph";
+import {
+    ClassDeclaration,
+    Project,
+    Node,
+    VariableDeclarationKind
+} from "ts-morph";
 import ts from 'typescript'
-import { join } from "path";
-import { ensureDirSync, rmdirSync } from "fs-extra";
+import {join} from "path";
+import {ensureDirSync, rmdirSync} from "fs-extra";
 // 根目录
 const root = process.cwd();
 const SdkConf = require(join(root, 'sdk.config.json'))
@@ -15,12 +20,12 @@ const args = process.argv;
 program.version(pkg.version);
 program.parse(args);
 rmdirSync(output, {
-  recursive: true,
+    recursive: true,
 });
 ensureDirSync(output);
 // 项目 Project
 const project = new Project({
-  tsConfigFilePath: join(root, "tsconfig.json"),
+    tsConfigFilePath: join(root, "tsconfig.json"),
 });
 const sourcefiles = project.getSourceFiles();
 // 输入sdk Project
@@ -37,68 +42,81 @@ const ControllerClassList: Array<ClassDeclaration> = []
 const DtoClassList: Array<ClassDeclaration> = []
 
 const MethodMap = ["GET", "POST", "PUT", "DELETE"]
+
 function formatMethod(Arguments: Node<ts.Node>[]): Array<string> {
-  if (!Arguments.length) {
-    return []
-  }
-  let basePath = Arguments[0]?.getText()
-  basePath = basePath.replace(/[\ |\~|\`|\!|\@|\#|\$|\%|\^|\&|\*|\(|\)|\-|\_|\+|\=|\||\\|\[|\]|\{|\}|\;|\"|\'|\,|\<|\.|\>|\?]/g, "");
-  return basePath.split('/').filter(i => !!i && i.trim()) ?? []
+    if (!Arguments.length) {
+        return []
+    }
+    let basePath = Arguments[0]?.getText()
+    basePath = basePath.replace(/[\"|\'?]/g, "");
+    return basePath.split('/').filter(i => !!i && i.trim()) ?? []
 }
+
 function getMethodStatments(paths: Array<string>, methodName: string) {
-  return `return http.${methodName.toLowerCase()}('/${paths.join('/')}')`
+    return `return http.${methodName.toLowerCase()}('/${paths.join('/')}')`
 }
 
 sourcefiles.forEach(sourcefile => {
-  sourcefile.fixUnusedIdentifiers()
-  sourcefile.getClasses().forEach(clazzDec => {
-    clazzDec.getDecorators().forEach(decorator => {
-      if (decorator.getFullName() === "Controller") {
-        const newClazzDec = outControlFile.addClass({
-          name: clazzDec.getName(),
-          docs: clazzDec.getJsDocs().map(item => item.getStructure())
-        })
-        newClazzDec.setIsExported(true)
-        const controlPath = formatMethod(decorator.getArguments())
-        clazzDec.getInstanceMethods().forEach(methodDec => {
-          methodDec.getDecorators().forEach(dec => {
-            const methodName = MethodMap.find(name => name === dec.getFullName().toUpperCase())
-            if (methodName) {
-              const methodPath = formatMethod(dec.getArguments())
-              const parameters = methodDec.getParameters().map(item => {
-                item.getDecorators().forEach(item => item.remove())
-                return item
-              })
-              const returnType = methodDec.getReturnType()
-              // const path = returnType.getAliasSymbolOrThrow().getDeclarations()[0].getSourceFile().getFilePath()
-              returnType.getAliasSymbolOrThrow().getDeclarations()[0].getSourceFile().getExportedDeclarations().get("Resp")[0] // 获取Resp Dec
-              returnType.getText()
-              newClazzDec.addMethod({
-                name: methodDec.getName(),
-                docs: methodDec.getJsDocs().map(item => item.getStructure()),
-                statements: getMethodStatments(controlPath.concat(methodPath), methodName),
-                parameters: parameters.map(item => item.getStructure()),
-                returnType: returnType.getText()
-              })
+    sourcefile.fixUnusedIdentifiers()
+    sourcefile.getTypeAliases().forEach(typeDec => {
+        typeDec.getJsDocs().forEach(item => {
+            if (item.getStructure().tags.some(tag => tag.tagName === 'Dto')) {
+                outDtoFile.addTypeAlias(typeDec.getStructure())
             }
-          })
         })
-
-        ControllerClassList.push(newClazzDec)
-      }
     })
-  })
+    sourcefile.getClasses().forEach(clazzDec => {
+        clazzDec.getDecorators().forEach(decorator => {
+            if (decorator.getFullName() === "Controller") {
+                const newClazzDec = outControlFile.addClass({
+                    name: clazzDec.getName(),
+                    docs: clazzDec.getJsDocs().map(item => item.getStructure())
+                })
+                newClazzDec.setIsExported(true)
+                const controlPath = formatMethod(decorator.getArguments())
+                clazzDec.getInstanceMethods().forEach(methodDec => {
+                    methodDec.getDecorators().forEach(dec => {
+                        const methodName = MethodMap.find(name => name === dec.getFullName().toUpperCase())
+                        if (methodName) {
+                            const methodPath = formatMethod(dec.getArguments())
+                            const parameters = methodDec.getParameters().map(item => {
+                                item.getDecorators().forEach(item => item.remove())
+                                return item
+                            })
+                            newClazzDec.addMethod({
+                                name: methodDec.getName(),
+                                docs: methodDec.getJsDocs().map(item => item.getStructure()),
+                                statements: getMethodStatments(controlPath.concat(methodPath), methodName),
+                                parameters: parameters.map(item => item.getStructure()),
+                                returnType: methodDec.getStructure().returnType
+                            })
+                        }
+                    })
+                })
+                ControllerClassList.push(newClazzDec)
+            } else if (decorator.getFullName() === "Dto") {
+                const newDtoDec = outDtoFile.addClass({
+                    ...clazzDec.getStructure(),
+                    name: clazzDec.getName(),
+                    docs: clazzDec.getJsDocs().map(item => item.getStructure()),
+                    decorators: []
+                })
+                newDtoDec.setIsExported(true)
+                DtoClassList.push(newDtoDec)
+            }
+        })
+    })
 })
 // make export index
 ControllerClassList.forEach(clazzDec => {
-  outIndexFile.addVariableStatement({
-    declarationKind: VariableDeclarationKind.Const,
-    declarations: [{
-      name: `$${clazzDec.getName()}`,
-      initializer: `new ${clazzDec.getName()}()`,
-    }],
-    isExported: true
-  })
+    outIndexFile.addVariableStatement({
+        declarationKind: VariableDeclarationKind.Const,
+        declarations: [{
+            name: `$${clazzDec.getName()}`,
+            initializer: `new ${clazzDec.getName()}()`,
+        }],
+        isExported: true
+    })
 })
 
 // last action

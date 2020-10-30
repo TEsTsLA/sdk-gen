@@ -15,13 +15,21 @@ class ResPaginationDto<T> {
     msg?: string
 }
 
+@Dto()
 export class Page {
     pageNo:number
     limit:number
 }
+@Dto()
+export class Res<T>{
+    data:T
+}
 
+/**
+ * @Dto this is a Dto
+ */
 export type Resp<T> = Promise<ResDto<T>>
 /**
- * paginate Resp
+ * @Dto paginate Resp
  */
 export type PagResp<T> = Promise<ResPaginationDto<T>>
