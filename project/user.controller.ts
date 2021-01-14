@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, Query } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Param, Post, Put } from "@nestjs/common";
 import { Resp } from "./all.dto";
 import { CreateUserDto, UpdUserDto } from "./user.dto";
 
@@ -19,18 +19,19 @@ export class UserController {
   @Delete('/:id')
   async delUser(@Param() id: number): Resp<null> {
     return {
-      code: 200
+      code: 200,
+      msg: String(id)
     };
   }
   @Put('create')
-  async updUser(@Body() data: UpdUserDto): Resp<null> {
-    return { code: 200 }
+  async updUser(@Body() data: UpdUserDto): Resp<UpdUserDto> {
+    return { code: 200, data }
   }
   /**
    * @param payload sss
    */
   @Post('/createUser')
-  async createUser(@Body() data: CreateUserDto, @Query() query: CreateUserDto): Resp<CreateUserDto> {
+  async createUser(@Body() data: CreateUserDto): Resp<CreateUserDto> {
     return {
       code: 200,
       data

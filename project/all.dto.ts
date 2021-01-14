@@ -1,13 +1,13 @@
 import {Dto} from "./dto.decorator";
 
-@Dto()
+@Dto
 class ResDto<T> {
     data?: T
     code: number;
     msg?: string
 }
 
-@Dto()
+@Dto
 class ResPaginationDto<T> {
     data: Array<T>
     code: number;
@@ -15,12 +15,12 @@ class ResPaginationDto<T> {
     msg?: string
 }
 
-@Dto()
+@Dto
 export class Page {
     pageNo:number
     limit:number
 }
-@Dto()
+@Dto
 export class Res<T>{
     data:T
 }

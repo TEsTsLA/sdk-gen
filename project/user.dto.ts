@@ -3,7 +3,7 @@ import {Dto} from "./dto.decorator";
 /**
  * User Create Dto
  */
-@Dto()
+@Dto
 export class CreateUserDto {
     /**
      * user name
@@ -15,7 +15,7 @@ export class CreateUserDto {
     age!: number;
 }
 
-@Dto()
+@Dto
 export class User {
     id: number
     name: string
@@ -23,7 +23,7 @@ export class User {
     friends: Array<User>
 }
 
-@Dto()
+@Dto
 export class UpdUserDto {
     id: number;
     name: string;
